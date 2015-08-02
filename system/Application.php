@@ -35,13 +35,36 @@ class Application
     public function dispatch()
     {
         //获取当前脚本的url
-        $url = $_SERVER['SCRIPT_NAME'];
-        list($d,$c,$m) = explode('/',trim($url,'/'));
+        $url = $_SERVER['PATH_INFO'];
+        list($c,$m) = explode('/',trim($url,'/'));
 
         $c_low = strtolower($c);
         $c = ucwords($c);
+
+        $controller_config = $this->config['controller'];
+
+        $decorators = array();
+
+        if(isset($controller_config[$c_low]['decorator']))
+        {
+            $conf_decorator = $controller_config[$c_low]['decorator'];
+            foreach ($conf_decorator as $class) {
+                $decorators[] = new $class;
+            }
+        }
+
+        foreach($decorators as $decorator)
+        {
+            $decorator->beforeRequest();
+        }
         $class = '\\App\\Controller\\'.$c;
-        $obj = new $class($c,$m);
-        //TODO 路由解析部分
+        $obj = new $class();
+        $obj->$m();
+
+        foreach($decorators as $decorator)
+        {
+            $decorator->afterRequest();
+        }
+
     }
 }
